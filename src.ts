@@ -1,4 +1,4 @@
-import './shared/web/style.css';
+import './styles.css';
 import { ESPLoader, Transport } from 'esptool-js';
 import { DeviceSerial } from './shared/web/serial.js';
 import { configSchema } from './shared/protocol/src/index.js';
@@ -18,6 +18,7 @@ connect.onclick = async () => {
     document.querySelector<HTMLElement>('#connect-panel')!.hidden = true;
     document.querySelector<HTMLElement>('#install-panel')!.hidden = false;
     document.querySelector('#step-1')!.classList.remove('current'); document.querySelector('#step-2')!.classList.add('current');
+    document.querySelector('#step-1')!.removeAttribute('aria-current'); document.querySelector('#step-2')!.setAttribute('aria-current', 'step');
     message.textContent = ''; message.classList.remove('error');
   } catch (error) { message.textContent = String(error); message.classList.add('error'); }
 };
@@ -33,6 +34,7 @@ async function configure() {
   document.querySelector<HTMLElement>('#install-panel')!.hidden = true;
   document.querySelector<HTMLElement>('#config-panel')!.hidden = false;
   document.querySelector('#step-2')!.classList.remove('current'); document.querySelector('#step-3')!.classList.add('current');
+  document.querySelector('#step-2')!.removeAttribute('aria-current'); document.querySelector('#step-3')!.setAttribute('aria-current', 'step');
 }
 document.querySelector<HTMLButtonElement>('#existing')!.onclick = async event => {
   const button = event.currentTarget as HTMLButtonElement; button.disabled = true;

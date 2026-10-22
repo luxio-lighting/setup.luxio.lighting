@@ -1,8 +1,70 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#101116"><meta name="description" content="Set up your Luxio ESP32 light over USB. No account needed."><title>Set up your Luxio light</title></head><body>
-<header><a class="brand" href="/"><i class="brand-mark"></i>luxio<span>Setup</span></a><nav><a href="https://studio.luxio.lighting">Open Studio ↗</a><span class="status"><i class="dot"></i> No account needed</span></nav></header>
-<main class="setup-main"><div class="setup-intro"><div class="eyebrow">Good light starts here</div><h1>A small board.<br>So many possibilities.</h1><p>Connect your ESP32 over USB. We’ll install Luxio, connect it to Wi-Fi, and get your strip ready.</p></div><div class="steps"><span id="step-1" class="current"><b>1</b> Connect</span><span id="step-2"><b>2</b> Install</span><span id="step-3"><b>3</b> Make it yours</span></div>
-<div id="unsupported" class="message error" hidden>This browser does not provide the required USB and serial APIs. Please use Google Chrome on a computer.</div>
-<div class="setup-grid"><section class="panel setup-card"><div id="connect-panel"><h2>Meet your new light.</h2><p>Use a USB cable that carries data. Select your ESP32 in the browser’s device picker to get started.</p><button id="connect" class="primary">Connect device →</button></div>
-<div id="install-panel" hidden><h2>Bring your board to life.</h2><p>Install the latest public Luxio build, or continue if Luxio is already installed.</p><div class="toolbar"><button id="flash" class="primary">Install Luxio</button><button id="existing" class="quiet">Already installed →</button></div><progress id="progress" value="0" max="100" hidden></progress><pre id="log" class="log" aria-live="polite"></pre></div>
-<form id="config-panel" hidden><h2>Make it yours.</h2><p>Choose a name and tell Luxio how your strip is connected.</p><div class="form-grid"><label class="full">Light name<input id="name" value="My Luxio" maxlength="63" required autocomplete="off"></label><label class="full">Wi-Fi network<input id="ssid" maxlength="32" required autocomplete="off"></label><label class="full">Wi-Fi password<input id="password" type="password" maxlength="64" autocomplete="new-password"><span class="muted small">Leave empty for an open network.</span></label><label>Strip type<select id="strip-type"><option>WS2805</option><option>WS2814</option><option>WS2812</option></select></label><label>Addressable controllers<input id="led-count" type="number" value="60" min="1" max="1024" required></label><label>Data GPIO<input id="gpio" type="number" value="16" min="0" max="54" required></label></div><button id="save" class="primary" type="submit">Save & connect →</button></form>
-<div id="done-panel" hidden><div class="eyebrow" style="margin-bottom:12px">Ready when you are</div><h2>Your light is yours.</h2><p id="done-description"></p><div class="toolbar"><a class="button primary" href="https://studio.luxio.lighting">Create an animation ↗</a><button id="edit" class="quiet">Edit settings</button></div></div></section><div class="setup-illustration" aria-hidden="true"><div class="board"><div class="chip">ESP32</div></div></div></div><div id="message" class="message" role="status" aria-live="polite"></div><footer>One ESP32. One strip. All yours.<br>WS2805 · WS2814 · WS2812 &nbsp; / &nbsp; Initial setup uses USB.</footer></main><script type="module" src="./src.ts"></script></body></html>
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#141414">
+  <meta name="description" content="Install Luxio and configure your ESP32 light over USB.">
+  <title>Luxio Setup</title>
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+</head>
+<body>
+  <header class="toolbar">
+    <a class="brand" href="/" aria-label="Luxio Setup"><img class="brand-mark" src="/luxio-jellyfish.png" alt="" width="32" height="32"><strong>Luxio <span>Setup</span></strong></a>
+    <a class="button ghost small" href="https://studio.luxio.lighting">Open Studio <span aria-hidden="true">↗</span></a>
+  </header>
+  <main>
+    <div class="page-title"><h1>Set up your light</h1><p>Install Luxio and connect your strip to Wi-Fi.</p></div>
+    <div id="unsupported" class="message error" hidden>USB setup requires Google Chrome on a computer.</div>
+    <section class="setup-card" aria-label="Device setup">
+      <ol class="steps" aria-label="Setup progress">
+        <li id="step-1" class="current" aria-current="step"><b>1</b> Connect</li>
+        <li id="step-2"><b>2</b> Install</li>
+        <li id="step-3"><b>3</b> Configure</li>
+      </ol>
+      <div class="panel-body">
+        <div id="connect-panel">
+          <div class="device-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="16" rx="2"/><rect x="9" y="7" width="6" height="6" rx="1"/><path d="M10 19v3m4-3v3M3 7h3m-3 4h3m-3 4h3m12-8h3m-3 4h3m-3 4h3"/></svg></div>
+          <h2>Connect your ESP32</h2>
+          <p>Plug in your board with a USB data cable, then select it below.</p>
+          <button id="connect" class="primary">Connect device <span aria-hidden="true">→</span></button>
+        </div>
+        <div id="install-panel" hidden>
+          <h2>Install Luxio</h2>
+          <p>Install the latest public build, or configure a board that already runs Luxio.</p>
+          <div class="actions"><button id="flash" class="primary">Install Luxio</button><button id="existing" class="secondary">Already installed</button></div>
+          <progress id="progress" value="0" max="100" aria-label="Firmware installation progress" hidden></progress>
+          <pre id="log" class="log" aria-label="Installation log" aria-live="polite"></pre>
+        </div>
+        <form id="config-panel" hidden>
+          <h2>Configure your light</h2>
+          <p>Set your Wi-Fi and strip connections.</p>
+          <div class="form-grid">
+            <label class="full">Light name<input id="name" value="My Luxio" maxlength="63" required autocomplete="off"></label>
+            <label>Wi-Fi network<input id="ssid" maxlength="32" required autocomplete="off"></label>
+            <label>Wi-Fi password<input id="password" type="password" maxlength="64" autocomplete="new-password"><span class="hint">Leave empty for an open network.</span></label>
+          </div>
+          <fieldset><legend>LED strip</legend><div class="strip-grid">
+            <label>Strip type<select id="strip-type"><option>WS2805</option><option>WS2814</option><option>WS2812</option></select></label>
+            <label>Controllers<input id="led-count" type="number" value="60" min="1" max="1024" required></label>
+            <label>Data GPIO<input id="gpio" type="number" value="16" min="0" max="54" required></label>
+          </div></fieldset>
+          <button id="save" class="primary" type="submit">Save & connect <span aria-hidden="true">→</span></button>
+        </form>
+        <div id="done-panel" hidden>
+          <div class="device-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></div>
+          <h2>Your light is connected</h2><p id="done-description"></p>
+          <div class="actions"><a class="button primary" href="https://studio.luxio.lighting">Open Studio <span aria-hidden="true">↗</span></a><button id="edit" class="secondary">Edit settings</button></div>
+        </div>
+      </div>
+      <div id="message" class="message" role="status" aria-live="polite"></div>
+    </section>
+    <p class="supported-strips">WS2805 <span>·</span> WS2814 <span>·</span> WS2812</p>
+  </main>
+  <footer class="statusbar"><span><i class="connection-dot" aria-hidden="true"></i> USB setup</span><span>ESP32</span></footer>
+  <script type="module" src="./src.ts"></script>
+</body>
+</html>
