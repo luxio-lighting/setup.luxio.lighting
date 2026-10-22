@@ -44,8 +44,13 @@
           <p>Set your Wi-Fi and strip connections.</p>
           <div class="form-grid">
             <label class="full">Light name<input id="name" value="My Luxio" maxlength="63" required autocomplete="off"></label>
-            <label>Wi-Fi network<input id="ssid" maxlength="32" required autocomplete="off"></label>
-            <label>Wi-Fi password<input id="password" type="password" maxlength="64" autocomplete="new-password"><span class="hint">Leave empty for an open network.</span></label>
+            <div class="full">
+              <label for="network">Wi-Fi network</label>
+              <div class="network-row"><select id="network" required aria-describedby="scan-status"><option value="" disabled selected>Select a network</option><option value="custom">Custom...</option></select><button id="scan" type="button" class="secondary" aria-label="Refresh Wi-Fi networks">Refresh</button></div>
+              <span id="scan-status" class="hint" role="status" aria-live="polite"></span>
+            </div>
+            <label id="custom-network" hidden>Network name<input id="ssid" maxlength="32" required disabled autocomplete="off"></label>
+            <label>Wi-Fi password<input id="password" type="password" maxlength="64" disabled autocomplete="new-password" aria-describedby="password-hint"><span id="password-hint" class="hint">Select a network.</span></label>
           </div>
           <fieldset><legend>LED strip</legend><div class="strip-grid">
             <label>Strip type<select id="strip-type"><option>WS2805</option><option>WS2814</option><option>WS2812</option></select></label>

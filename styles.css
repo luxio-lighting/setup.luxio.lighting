@@ -59,6 +59,10 @@ input, select { width: 100%; min-width: 0; height: 36px; padding: 7px 10px; bord
 select { cursor: pointer; }
 input:hover, select:hover { border-color: #737373; }
 .hint { color: var(--muted-foreground); font-size: 11px; }
+.network-row { display: flex; gap: 8px; margin-top: 7px; }
+.network-row select { flex: 1; }
+.network-row button { flex-shrink: 0; }
+input:disabled { opacity: .5; cursor: not-allowed; }
 fieldset { min-width: 0; border: 0; border-top: 1px solid var(--border); padding: 18px 0 0; margin: 26px 0; }
 legend { padding: 0 10px 0 0; color: var(--muted-foreground); font-size: 11px; }
 .strip-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
