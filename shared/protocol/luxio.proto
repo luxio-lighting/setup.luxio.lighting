@@ -21,6 +21,22 @@ enum Operation {
   INSTALL_UPDATE = 14;
   SET_POWER = 15;
   SCAN_WIFI = 16;
+  SET_GRADIENT = 17; // Live preview; does not write a library file.
+  LIST_GRADIENTS = 18;
+  GET_GRADIENT = 19;
+  CREATE_GRADIENT = 20;
+  UPDATE_GRADIENT = 21;
+  DELETE_GRADIENT = 22;
+  RUN_GRADIENT = 23;
+  STOP_GRADIENT = 24;
+  LIST_COLORS = 25;
+  GET_COLOR = 26;
+  CREATE_COLOR = 27;
+  UPDATE_COLOR = 28;
+  DELETE_COLOR = 29;
+  RUN_COLOR = 30;
+  SET_ANIMATION_PARAMETERS = 32; // Patch active values in RAM without restarting.
+  SET_SCRIPT = 31; // Execute supplied Lua from RAM, without saving a script file.
 }
 enum Mode {
   COLOR = 0;
@@ -44,7 +60,23 @@ message Config {
 }
 message Wifi { string ssid = 1; string password = 2; }
 message WifiNetwork { string ssid = 1; sint32 rssi = 2; bool password_required = 3; }
-message Script { string id = 1; string name = 2; string source = 3; Mode mode = 4; }
+message AnimationParameter {
+  string name = 1;
+  bool boolean = 2; // True means Checkbox, with values 0 or 1. False means numeric.
+  double value = 3;
+  double default_value = 4;
+  double minimum = 5;
+  double maximum = 6;
+  bool number_input = 7; // Numeric input instead of a slider; absent on older firmware.
+}
+message Script { string id = 1; string name = 2; string source = 3; Mode mode = 4; repeated AnimationParameter parameters = 5; }
+message Gradient {
+  string id = 1;
+  string name = 2;
+  repeated Color colors = 3; // 2–8 evenly spaced RGBCCT stops.
+  string editor_metadata = 4; // Optional, non-executable editor data (UTF-8, at most 2048 bytes).
+}
+message SavedColor { string id = 1; string name = 2; Color color = 3; }
 message State {
   string device_id = 1;
   uint32 build = 2;
@@ -55,6 +87,11 @@ message State {
   string lan_ip = 7;
   Mode mode = 8;
   bool on = 9;
+  string active_gradient_id = 10;
+  Gradient gradient = 11; // Current stops, including unsaved live edits; present only in Gradient mode.
+  string active_color_id = 12;
+  repeated AnimationParameter parameters = 14; // Active definitions and values.
+  string script_name = 13; // Display name for the active animation, saved or in-memory.
 }
 message Request {
   uint32 id = 1;
@@ -67,6 +104,13 @@ message Request {
   string script_id = 8;
   uint32 script_offset = 9; // LIST_SCRIPTS continuation; zero starts a listing.
   bool on = 10; // SET_POWER; brightness is independent (1–256).
+  Gradient gradient = 11;
+  string gradient_id = 12;
+  uint32 gradient_offset = 13;
+  SavedColor saved_color = 14;
+  string color_id = 15;
+  uint32 color_offset = 16;
+  repeated AnimationParameter parameters = 17; // Values to patch; name/boolean/value are required logically.
 }
 message Response {
   uint32 id = 1;
@@ -83,4 +127,10 @@ message Response {
   repeated WifiNetwork wifi_networks = 12; // Strongest first; at most 32 distinct SSID/security pairs.
   bool wifi_scanning = 13; // SCAN_WIFI starts; GET_STATE polls without restarting.
   string wifi_scan_error = 14;
+  repeated Gradient gradients = 15;
+  Gradient gradient = 16;
+  uint32 next_gradient_offset = 17;
+  repeated SavedColor colors = 18;
+  SavedColor saved_color = 19;
+  uint32 next_color_offset = 20;
 }
