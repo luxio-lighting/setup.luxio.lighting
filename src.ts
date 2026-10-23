@@ -6,7 +6,8 @@ const message = document.querySelector<HTMLElement>('#message')!;
 const connect = document.querySelector<HTMLButtonElement>('#connect')!;
 const log = document.querySelector<HTMLElement>('#log')!;
 const progress = document.querySelector<HTMLProgressElement>('#progress')!;
-const network = document.querySelector<HTMLSelectElement>('#network')!;
+const network = document.querySelector<HTMLInputElement>('#network')!;
+const networkOptions = document.querySelector<HTMLUListElement>('#network-options')!;
 const ssidInput = document.querySelector<HTMLInputElement>('#ssid')!;
 const passwordInput = document.querySelector<HTMLInputElement>('#password')!;
 const scanButton = document.querySelector<HTMLButtonElement>('#scan')!;
@@ -19,19 +20,72 @@ let channel = 0;
 const supported = 'serial' in navigator && 'usb' in navigator;
 if (!supported) { document.querySelector<HTMLElement>('#unsupported')!.hidden = false; connect.disabled = true; }
 network.onchange = () => {
-  const custom = network.value === 'custom';
-  document.querySelector<HTMLElement>('#custom-network')!.hidden = !custom;
+  const custom = network.value === 'custom' || network.value === 'custom-open';
+  ssidInput.hidden = !custom;
   ssidInput.disabled = !custom;
   passwordInput.value = '';
-  const secured = network.value && !custom ? JSON.parse(network.value)[1] as boolean : false;
-  passwordInput.disabled = !custom && !secured;
+  const secured = custom ? network.value === 'custom' : network.value ? JSON.parse(network.value)[1] as boolean : false;
+  document.querySelector<HTMLElement>('#password-field')!.hidden = !secured;
+  passwordInput.disabled = !secured;
   passwordInput.required = secured;
-  document.querySelector<HTMLElement>('#password-hint')!.textContent = custom ? 'Leave empty for an open network.' : secured ? 'Password required.' : network.value ? 'Open network — no password.' : 'Select a network.';
   if (custom) ssidInput.focus();
 };
+for (const dropdown of document.querySelectorAll<HTMLElement>('.dropdown')) {
+  const input = dropdown.querySelector<HTMLInputElement>('input[type="hidden"]')!;
+  const trigger = dropdown.querySelector<HTMLButtonElement>('.select-trigger')!;
+  const list = dropdown.querySelector<HTMLUListElement>('.select-options')!;
+  const value = dropdown.querySelector<HTMLElement>('.selected-value')!;
+  trigger.onclick = () => {
+    list.hidden = !list.hidden;
+    trigger.setAttribute('aria-expanded', String(!list.hidden));
+    if (!list.hidden) (list.querySelector<HTMLElement>('[aria-selected="true"]') ?? list.querySelector<HTMLElement>('[role="option"]'))?.focus();
+  };
+  trigger.onkeydown = event => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault(); list.hidden = false; trigger.setAttribute('aria-expanded', 'true');
+    const options = list.querySelectorAll<HTMLElement>('[role="option"]');
+    (list.querySelector<HTMLElement>('[aria-selected="true"]') ?? options[event.key === 'ArrowUp' ? options.length - 1 : 0])?.focus();
+  };
+  list.onclick = event => {
+    const option = (event.target as Element).closest<HTMLElement>('[role="option"]');
+    if (!option) return;
+    const changed = input.value !== option.dataset.value;
+    input.value = option.dataset.value!;
+    value.replaceChildren(...Array.from(option.childNodes, node => node.cloneNode(true)));
+    value.classList.remove('placeholder');
+    for (const item of list.querySelectorAll('[role="option"]')) item.setAttribute('aria-selected', String(item === option));
+    list.hidden = true; trigger.setAttribute('aria-expanded', 'false'); trigger.focus();
+    if (changed) input.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  list.onkeydown = event => {
+    const options = Array.from(list.querySelectorAll<HTMLElement>('[role="option"]'));
+    const index = options.indexOf(document.activeElement as HTMLElement);
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); options[index]?.click(); }
+    else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      options[event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length]?.focus();
+    } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      [...options.slice(index + 1), ...options.slice(0, index + 1)].find(option => option.textContent?.trim().toLowerCase().startsWith(event.key.toLowerCase()))?.focus();
+    }
+  };
+  dropdown.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault(); list.hidden = true; trigger.setAttribute('aria-expanded', 'false'); trigger.focus();
+  });
+  dropdown.addEventListener('focusout', event => {
+    if (dropdown.contains(event.relatedTarget as Node | null)) return;
+    list.hidden = true; trigger.setAttribute('aria-expanded', 'false');
+  });
+  document.addEventListener('click', event => {
+    if (dropdown.contains(event.target as Node)) return;
+    list.hidden = true; trigger.setAttribute('aria-expanded', 'false');
+  });
+}
 async function scanNetworks() {
   if (!serial || scanning) return;
   scanning = true; scanButton.disabled = true;
+  scanButton.setAttribute('aria-busy', 'true');
   document.querySelector<HTMLButtonElement>('#save')!.disabled = true;
   scanStatus.textContent = 'Scanning…';
   try {
@@ -44,24 +98,37 @@ async function scanNetworks() {
     }
     if (response.wifiScanError) throw new Error(response.wifiScanError);
     const selected = network.value;
-    const previous = network.selectedOptions[0]?.cloneNode(true) as HTMLOptionElement | undefined;
-    const placeholder = new Option('Select a network', ''); placeholder.disabled = true;
-    network.replaceChildren(placeholder);
+    const previous = networkOptions.querySelector<HTMLElement>('[aria-selected="true"]')?.cloneNode(true) as HTMLElement | undefined;
+    const focusedValue = networkOptions.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.value : undefined;
+    const customOptions = Array.from(networkOptions.querySelectorAll<HTMLElement>('[data-value^="custom"]'));
+    networkOptions.replaceChildren();
     const networks = (response.wifiNetworks ?? []).filter(item => item.ssid).sort((a, b) => b.rssi - a.rssi);
     for (const item of networks) {
       const value = JSON.stringify([item.ssid, item.passwordRequired]);
-      if (Array.from(network.options).some(option => option.value === value)) continue;
-      network.add(new Option(`${item.ssid} · ${item.rssi} dBm · ${item.passwordRequired ? 'Password' : 'Open'}`, value));
+      if (Array.from(networkOptions.children).some(option => (option as HTMLElement).dataset.value === value)) continue;
+      const strength = item.rssi >= -55 ? 3 : item.rssi >= -70 ? 2 : item.rssi >= -80 ? 1 : 0;
+      const option = document.createElement('li');
+      option.setAttribute('role', 'option'); option.tabIndex = -1; option.dataset.value = value;
+      option.setAttribute('aria-selected', String(value === selected));
+      const icon = document.createElement('span'); icon.className = 'network-icon';
+      icon.setAttribute('role', 'img');
+      icon.setAttribute('aria-label', `${['Weak', 'Fair', 'Good', 'Strong'][strength]} signal, ${item.rssi} dBm, ${item.passwordRequired ? 'password required' : 'open network'}`);
+      icon.innerHTML = `<svg class="wifi-icon strength-${strength}" viewBox="0 0 24 24" aria-hidden="true"><path class="wifi-arc outer" d="M2 8a16 16 0 0 1 20 0"/><path class="wifi-arc middle" d="M5 12a11 11 0 0 1 14 0"/><path class="wifi-arc inner" d="M8.5 16a5.5 5.5 0 0 1 7 0"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/></svg>${item.passwordRequired ? '<svg class="lock-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="7" width="8" height="7" rx="1.5"/><path d="M5.5 7V4.5a2.5 2.5 0 0 1 5 0V7"/></svg>' : ''}`;
+      const name = document.createElement('span'); name.className = 'network-name'; name.textContent = item.ssid;
+      option.append(icon, name); networkOptions.append(option);
     }
     // A refresh must not discard the user's selection or password.
-    if (selected && selected !== 'custom' && previous && !Array.from(network.options).some(option => option.value === selected)) network.add(previous);
-    network.add(new Option('Custom...', 'custom'));
-    network.value = selected;
-    scanStatus.textContent = networks.length ? '' : 'No networks found. Choose Custom... or refresh.';
+    if (selected && !selected.startsWith('custom') && previous && !Array.from(networkOptions.children).some(option => (option as HTMLElement).dataset.value === selected)) networkOptions.append(previous);
+    networkOptions.append(...customOptions);
+    const selectedOption = networkOptions.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (selectedOption) document.querySelector('#network-value')!.replaceChildren(...Array.from(selectedOption.childNodes, node => node.cloneNode(true)));
+    if (focusedValue) (Array.from(networkOptions.children).find(option => (option as HTMLElement).dataset.value === focusedValue) as HTMLElement | undefined ?? networkOptions.querySelector<HTMLElement>('[role="option"]'))?.focus();
+    scanStatus.textContent = networks.length ? '' : 'No networks found. Enter another network or refresh.';
   } catch (error) {
-    scanStatus.textContent = `Could not scan networks. Choose Custom... or refresh. ${error instanceof Error ? error.message : String(error)}`;
+    scanStatus.textContent = `Could not scan networks. Enter another network or refresh. ${error instanceof Error ? error.message : String(error)}`;
   } finally {
     scanning = false; scanButton.disabled = false;
+    scanButton.removeAttribute('aria-busy');
     document.querySelector<HTMLButtonElement>('#save')!.disabled = false;
   }
 }
@@ -82,7 +149,11 @@ async function configure() {
   if (!response.state) throw new Error('Device did not return its configuration');
   const config = response.state.config; channel = config.channel;
   document.querySelector<HTMLInputElement>('#name')!.value = config.name;
-  document.querySelector<HTMLSelectElement>('#strip-type')!.value = config.stripType;
+  document.querySelector<HTMLInputElement>('#strip-type')!.value = config.stripType;
+  for (const option of document.querySelectorAll<HTMLElement>('#strip-type-options [role="option"]')) {
+    option.setAttribute('aria-selected', String(option.dataset.value === config.stripType));
+    if (option.dataset.value === config.stripType) document.querySelector('#strip-type-value')!.replaceChildren(...Array.from(option.childNodes, node => node.cloneNode(true)));
+  }
   document.querySelector<HTMLInputElement>('#led-count')!.value = String(config.ledCount);
   document.querySelector<HTMLInputElement>('#gpio')!.value = String(config.gpio);
   document.querySelector<HTMLElement>('#install-panel')!.hidden = true;
@@ -136,9 +207,9 @@ document.querySelector<HTMLFormElement>('#config-panel')!.onsubmit = async event
   const button = document.querySelector<HTMLButtonElement>('#save')!; button.disabled = true; scanButton.disabled = true;
   try {
     if (!serial) throw new Error('Reconnect your device');
-    const config = configSchema.parse({ name: document.querySelector<HTMLInputElement>('#name')!.value, stripType: document.querySelector<HTMLSelectElement>('#strip-type')!.value,
+    const config = configSchema.parse({ name: document.querySelector<HTMLInputElement>('#name')!.value, stripType: document.querySelector<HTMLInputElement>('#strip-type')!.value,
       ledCount: Number(document.querySelector<HTMLInputElement>('#led-count')!.value), gpio: Number(document.querySelector<HTMLInputElement>('#gpio')!.value), channel });
-    const ssid: string = network.value === 'custom' ? ssidInput.value : network.value ? JSON.parse(network.value)[0] : '';
+    const ssid: string = network.value.startsWith('custom') ? ssidInput.value : network.value ? JSON.parse(network.value)[0] : '';
     const password = passwordInput.disabled ? '' : passwordInput.value;
     if (!ssid) throw new Error('Select a Wi-Fi network or enter its name.');
     if (new TextEncoder().encode(ssid).length > 32 || new TextEncoder().encode(password).length > 64) throw new Error('Wi-Fi credentials exceed the supported byte length');

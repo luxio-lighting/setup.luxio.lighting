@@ -17,7 +17,7 @@
     <a class="button ghost small" href="https://studio.luxio.lighting">Open Studio <span aria-hidden="true">↗</span></a>
   </header>
   <main>
-    <div class="page-title"><h1>Set up your light</h1><p>Install Luxio and connect your strip to Wi-Fi.</p></div>
+    <div class="page-title"><h1>Set up your Luxio</h1><p>Install Luxio and connect your strip to Wi-Fi.</p></div>
     <div id="unsupported" class="message error" hidden>USB setup requires Google Chrome on a computer.</div>
     <section class="setup-card" aria-label="Device setup">
       <ol class="steps" aria-label="Setup progress">
@@ -40,24 +40,42 @@
           <pre id="log" class="log" aria-label="Installation log" aria-live="polite"></pre>
         </div>
         <form id="config-panel" hidden>
-          <h2>Configure your light</h2>
-          <p>Set your Wi-Fi and strip connections.</p>
-          <div class="form-grid">
-            <label class="full">Light name<input id="name" value="My Luxio" maxlength="63" required autocomplete="off"></label>
-            <div class="full">
-              <label for="network">Wi-Fi network</label>
-              <div class="network-row"><select id="network" required aria-describedby="scan-status"><option value="" disabled selected>Select a network</option><option value="custom">Custom...</option></select><button id="scan" type="button" class="secondary" aria-label="Refresh Wi-Fi networks">Refresh</button></div>
-              <span id="scan-status" class="hint" role="status" aria-live="polite"></span>
+          <h2>Configure your Luxio</h2>
+          <p>Connect to Wi-Fi, and set-up your LED strip.</p>
+          <label>Device Name<input id="name" value="My Luxio" maxlength="63" required autocomplete="off"></label>
+          <fieldset><legend>Wi-Fi</legend><div class="form-grid">
+            <div class="field">
+              <label id="network-label" for="network-trigger">SSID</label>
+              <div class="dropdown network-field">
+                <input id="network" type="hidden">
+                <button id="network-trigger" class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="network-options" aria-labelledby="network-label network-value" aria-describedby="scan-status"><span id="network-value" class="selected-value placeholder">Select a network</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
+                <button id="scan" type="button" class="refresh" aria-label="Refresh Wi-Fi networks" title="Refresh Wi-Fi networks"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/></svg></button>
+                <ul id="network-options" class="select-options" role="listbox" aria-labelledby="network-label" hidden>
+                  <li role="option" tabindex="-1" aria-selected="false" data-value="custom">Other secured network…</li>
+                  <li role="option" tabindex="-1" aria-selected="false" data-value="custom-open">Other open network…</li>
+                </ul>
+              </div>
+              <input id="ssid" aria-label="Custom SSID" placeholder="Enter SSID" maxlength="32" required disabled hidden autocomplete="off">
             </div>
-            <label id="custom-network" hidden>Network name<input id="ssid" maxlength="32" required disabled autocomplete="off"></label>
-            <label>Wi-Fi password<input id="password" type="password" maxlength="64" disabled autocomplete="new-password" aria-describedby="password-hint"><span id="password-hint" class="hint">Select a network.</span></label>
-          </div>
-          <fieldset><legend>LED strip</legend><div class="strip-grid">
-            <label>Strip type<select id="strip-type"><option>WS2805</option><option>WS2814</option><option>WS2812</option></select></label>
-            <label>Controllers<input id="led-count" type="number" value="60" min="1" max="1024" required></label>
-            <label>Data GPIO<input id="gpio" type="number" value="16" min="0" max="54" required></label>
+            <label id="password-field" hidden>Password<input id="password" type="password" maxlength="64" disabled autocomplete="new-password"></label>
+          </div><span id="scan-status" class="hint" role="status" aria-live="polite"></span></fieldset>
+          <fieldset><legend>LED Strip</legend><div class="strip-grid">
+            <div class="field">
+              <label id="strip-label" for="strip-type-trigger">Type</label>
+              <div class="dropdown">
+                <input id="strip-type" type="hidden" value="WS2805">
+                <button id="strip-type-trigger" class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="strip-type-options" aria-labelledby="strip-label strip-type-value"><span id="strip-type-value" class="selected-value"><span>WS2805</span><small>RGBCCT</small></span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
+                <ul id="strip-type-options" class="select-options" role="listbox" aria-labelledby="strip-label" hidden>
+                  <li role="option" tabindex="-1" aria-selected="true" data-value="WS2805"><span>WS2805</span><small>RGBCCT</small></li>
+                  <li role="option" tabindex="-1" aria-selected="false" data-value="WS2814"><span>WS2814</span><small>RGBW</small></li>
+                  <li role="option" tabindex="-1" aria-selected="false" data-value="WS2812"><span>WS2812</span><small>RGB</small></li>
+                </ul>
+              </div>
+            </div>
+            <label>LED Count<input id="led-count" type="number" value="60" min="1" max="1024" required></label>
+            <label>Data Pin<input id="gpio" type="number" value="16" min="0" max="54" required></label>
           </div></fieldset>
-          <button id="save" class="primary" type="submit">Save & connect <span aria-hidden="true">→</span></button>
+          <button id="save" class="primary" type="submit">Save & Connect <span aria-hidden="true">→</span></button>
         </form>
         <div id="done-panel" hidden>
           <div class="device-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></div>
@@ -67,7 +85,6 @@
       </div>
       <div id="message" class="message" role="status" aria-live="polite"></div>
     </section>
-    <p class="supported-strips">WS2805 <span>·</span> WS2814 <span>·</span> WS2812</p>
   </main>
   <footer class="statusbar"><span><i class="connection-dot" aria-hidden="true"></i> USB setup</span><span>ESP32</span></footer>
   <script type="module" src="./src.ts"></script>
