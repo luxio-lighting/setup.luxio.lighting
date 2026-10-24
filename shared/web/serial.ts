@@ -13,11 +13,17 @@ export class DeviceSerial {
       try {
         while (this.reader) {
           const { value, done } = await this.reader.read(); if (done) break;
-          for (const bytes of decoder.push(value)) {
-            const response = decodeResponse(bytes); const pending = this.pending.get(response.id);
-            if (!pending) continue;
-            clearTimeout(pending.timer); this.pending.delete(response.id);
-            if (response.error) pending.reject(new Error(response.error)); else pending.resolve(response);
+          try {
+            for (const bytes of decoder.push(value)) {
+              const response = decodeResponse(bytes); const pending = this.pending.get(response.id);
+              if (!pending) continue;
+              clearTimeout(pending.timer); this.pending.delete(response.id);
+              if (response.error) pending.reject(new Error(response.error)); else pending.resolve(response);
+            }
+          } catch (error) {
+            // A malformed reply fails this request, but must not stop USB reads.
+            for (const pending of this.pending.values()) { clearTimeout(pending.timer); pending.reject(error instanceof Error ? error : new Error(String(error))); }
+            this.pending.clear();
           }
         }
       } catch (error) {
