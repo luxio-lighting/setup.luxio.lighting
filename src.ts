@@ -209,7 +209,13 @@ document.querySelector<HTMLButtonElement>('#flash')!.onclick = async event => {
     }
     await loader.writeFlash({ fileArray: files, flashSize: 'keep', flashMode: 'keep', flashFreq: 'keep', eraseAll: false, compress: true,
       reportProgress: (file, written, total) => { progress.value = ((file + written / total) / files.length) * 100; } });
-    await loader.after('hard_reset'); await transport.disconnect();
+    // esptool-js 0.5.7's hard reset only releases RTS, leaving the flasher running.
+    // Keep GPIO0 high and pulse EN so the board boots the installed application.
+    await transport.setDTR(false);
+    await transport.setRTS(true);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await transport.setRTS(false);
+    await transport.disconnect();
     message.textContent = 'Firmware installed. Wait for the board to restart, then choose “Already installed” to configure it.'; message.classList.remove('error');
   } catch (error) { message.textContent = String(error); message.classList.add('error'); }
   finally { await transport.disconnect().catch(() => {}); button.disabled = false; existing.disabled = false; }

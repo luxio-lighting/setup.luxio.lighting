@@ -13,13 +13,23 @@ for (const [family, description, target, chipId, boot, appAddress, flashMb] of [
       await page.route('**/esptool-js.js*', route => route.fulfill({
         contentType: 'application/javascript',
         body: `
-          export class Transport { async disconnect() {} }
+          export class Transport {
+            dtr = false; rts = false; resetStarted = 0;
+            async setDTR(value) { this.dtr = value; }
+            async setRTS(value) {
+              if (value && !this.dtr) this.resetStarted = performance.now();
+              if (!value && this.rts && !this.dtr && performance.now() - this.resetStarted >= 90) window.applicationRunning = true;
+              this.rts = value;
+            }
+            async disconnect() {}
+          }
           export class ESPLoader {
+            constructor({ transport }) { this.transport = transport; }
             chip = { CHIP_NAME: ${JSON.stringify(family)} };
             async main() { return ${JSON.stringify(description)}; }
             async getFlashSize() { return ${scenario === 'small flash' ? (flashMb / 2) * 1024 : flashMb * 1024}; }
-            async writeFlash(options) { window.flashAddresses = options.fileArray.map(file => file.address); }
-            async after() {}
+            async writeFlash(options) { window.applicationRunning = false; window.flashAddresses = options.fileArray.map(file => file.address); }
+            async after() { await this.transport.setRTS(false); }
           }
         `,
       }));
@@ -55,6 +65,7 @@ for (const [family, description, target, chipId, boot, appAddress, flashMb] of [
       if (scenario === 'install') {
         await expect(page.locator('#message')).toContainText('Firmware installed');
         expect(await page.evaluate('window.flashAddresses')).toEqual([boot, 0x8000, 0xe000, 0x10000, appAddress]);
+        expect(await page.evaluate('window.applicationRunning')).toBe(true);
       } else {
         await expect(page.locator('#message')).toHaveClass(/error/);
         expect(await page.evaluate('window.flashAddresses')).toBeUndefined();
